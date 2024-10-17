@@ -359,3 +359,89 @@ select(mpg, lag_mpg, cumsum_mpg) %>% head(10)
     ## Merc 240D         24.4    14.3      161.7
     ## Merc 230          22.8    24.4      184.5
     ## Merc 280          19.2    22.8      203.7
+
+### `ggplot2`
+
+``` r
+library(ggplot2)
+```
+
+#### Defining data for plot
+
+``` r
+ggplot(data = mtcars)
+```
+
+![](readme_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+
+#### Mapping points on the plot
+
+``` r
+ggplot(mtcars, mapping = aes(x = hp, y = mpg))
+```
+
+![](readme_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+
+#### Creating a scatterplot
+
+``` r
+ggplot(mtcars, mapping = aes(x = hp, y = mpg)) +
+  geom_point()
+```
+
+![](readme_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+
+#### Adding fit and trendline overlay + title and axis names
+
+``` r
+ggplot(mtcars, mapping = aes(x = hp, y = mpg)) +
+  # to create a scatterplot
+  geom_point() +
+  # to fit and overlay a trendline
+  geom_smooth(formula = y ~ x, method = "lm") +
+  # to add a title and name the axes
+  labs(title = "Scatter plot of MPG vs HP", x = "HP", y = "Miles per Gallon")
+```
+
+![](readme_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+
+#### Adding another mapping - cylinders depicted by colors
+
+``` r
+ggplot(mtcars, mapping = aes(x = hp, y = mpg, color = factor(cyl))) +
+  geom_point() +
+  scale_colour_viridis_d()
+```
+
+![](readme_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
+
+#### Colors are hard to distinguish, changing them to manual scale
+
+``` r
+ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) +
+  geom_point(size = 3) +
+  scale_color_manual(values = c("red", "green", "blue")) +
+  theme_classic()
+```
+
+![](readme_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
+
+#### Faceting: facet_wrap(), facet_grid()
+
+Need to show the relationship divided by sub-groups. Example: cylinders.
+
+``` r
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point() +
+  facet_wrap(~ cyl)
+```
+
+![](readme_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
+
+``` r
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point() +
+  facet_grid(vs ~ am)
+```
+
+![](readme_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->

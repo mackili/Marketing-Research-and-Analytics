@@ -173,3 +173,65 @@ full_join(df1, df2, by = "id")
 mtcars %>% mutate(lag_mpg = lag(mpg), cumsum_mpg = cumsum(mpg)) %>%
 select(mpg, lag_mpg, cumsum_mpg) %>% head(10)
 ```
+
+### `ggplot2`
+
+```{r}
+library(ggplot2)
+```
+#### Defining data for plot
+```{r}
+ggplot(data = mtcars)
+```
+
+#### Mapping points on the plot
+```{r}
+ggplot(mtcars, mapping = aes(x = hp, y = mpg))
+```
+
+#### Creating a scatterplot
+```{r}
+ggplot(mtcars, mapping = aes(x = hp, y = mpg)) +
+  geom_point()
+```
+
+#### Adding fit and trendline overlay + title and axis names
+```{r}
+ggplot(mtcars, mapping = aes(x = hp, y = mpg)) +
+  # to create a scatterplot
+  geom_point() +
+  # to fit and overlay a trendline
+  geom_smooth(formula = y ~ x, method = "lm") +
+  # to add a title and name the axes
+  labs(title = "Scatter plot of MPG vs HP", x = "HP", y = "Miles per Gallon")
+```
+
+#### Adding another mapping - cylinders depicted by colors
+```{r}
+ggplot(mtcars, mapping = aes(x = hp, y = mpg, color = factor(cyl))) +
+  geom_point() +
+  scale_colour_viridis_d()
+```
+
+#### Colors are hard to distinguish, changing them to manual scale
+
+```{r}
+ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) +
+  geom_point(size = 3) +
+  scale_color_manual(values = c("red", "green", "blue")) +
+  theme_classic()
+```
+
+#### Faceting: facet_wrap(), facet_grid()
+
+Need to show the relationship divided by sub-groups. Example: cylinders.
+```{r}
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point() +
+  facet_wrap(~ cyl)
+```
+```{r}
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point() +
+  facet_grid(vs ~ am)
+```
