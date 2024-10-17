@@ -25,20 +25,151 @@ Slides [here](./unit_3_tidyverse.pdf)
 5. Evaluation - Which model best meets the business objectives?
 6. Deployment - How do stakeholders access the results?
 
-## Including Code
+# Tidyverse
 
-You can include R code in the document as follows:
+> A collection of `R` packages
 
-```{r cars}
-summary(cars)
+* Consistent Syntax and philosophy
+
+During the subjects following packages will be used:
+
+* **dplyr** - Data Manipulation
+* **tydyR** - Daty Cleaning (Tidying)
+* **ggplot2** - Visualization
+
+> Code written using Tidyverse is more **readeable** and **reproducible**
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+library(tidyverse)
 ```
 
-## Including Plots
+## Differences in syntax
 
-You can also embed plots, for example:
+### Pipes `%>%`
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+Pipes allow for composing a sequence of function calls in a more readeable way. Look at the following:
+
+Standard R syntax:
+```{Standard R syntax}
+print(head(iris))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Pipes syntax
+```{Pipes syntax}
+iris %>% head() %>% print()
+```
+
+## Excercise
+
+Sample data
+```{r}
+data('mtcars')
+```
+
+### Data manipulation with dplyr
+
+#### `filter()` Cars with more than 20 miles per gallon and 6 cylinders 
+Standard `R`
+```{r}
+mtcars_filtered <- mtcars[mtcars[,1] >= 20 & mtcars[,2] == 6,]
+mtcars_filtered
+```
+
+`R` with `dplyr`
+
+```{r}
+mtcars_filtered <- mtcars %>% filter(mpg > 20) %>% filter (cyl == 6)
+mtcars_filtered
+```
+
+#### `select()` columns by names or conditions (`head(10)` = 10 top rows)
+
+```{r}
+mtcars %>% select(mpg, cyl, hp) %>% head(10)
+```
+
+#### Calculate horse power to cylinder ratio
+
+```{r}
+mtcars_mutated <- mtcars %>% mutate(hp_per_cyl = hp / cyl) %>% 
+select (hp, cyl, hp_per_cyl) %>% head(10)
+mtcars_mutated
+```
+
+#### `arrange()` sort rows by columns
+
+```{r}
+mtcars %>% arrange(desc(mpg)) %>% head(10) %>% print()
+```
+
+#### `summarize()` and `group_by()`
+
+```{r}
+mtcars %>% group_by(cyl) %>% 
+summarize(mean_mpg = mean(mpg), count = n()) %>% print()
+```
+
+### Data Tidying with tidyR
+
+Example messy data
+```{r}
+messy_data <- tibble(
+  id = 1:4,
+  treatment_a = c(3, 4, 6, 8),
+  treatment_b = c(5, 6, 7, 9)
+)
+messy_data
+```
+
+#### `gather()`: Convert wide data to long format
+```{r}
+tidy_data <- messy_data %>% gather(key = "treatment", value = "response", treatment_a:treatment_b)
+tidy_data
+```
+#### `spread()`: Convert long data to wide format
+```{r}
+wide_data <- tidy_data %>% spread(key = treatment, value = response)
+wide_data
+```
+#### `separate()`: Split a single column into multiple columns
+```{r}
+separated_data <- tidy_data %>% separate(treatment, into = c("treatment", "type"), sep = "_")
+separated_data
+```
+#### `unite()`: Combine multiple columns into one
+```{r}
+united_data <- separated_data %>% unite(treatment_type, treatment, type, sep = "_")
+united_data
+```
+
+### Advanced dplyr Techniques
+
+#### Joins: `left_join()`, `inner_join()`, `right_join()`, `full_join()`
+```{r}
+df1 <- tibble(id = 1:3, value1 = c("A", "B", "C"))
+df1 %>% print()
+df2 <- tibble(id = 2:4, value2 = c("D", "E", "F"))
+df2 %>% print()
+```
+
+Includes all values from df1 (left table), excludes all not-matched rows of df2 (right table)
+```{r}
+left_join(df1, df2, by = "id")
+```
+Includes only rows with matching keys in both joined tables
+```{r}
+inner_join(df1, df2, by = "id")
+```
+Includes all values from df2 (righ table), excludes all not-matched rows of df1 (left table)
+```{r}
+right_join(df1, df2, by = "id")
+```
+Includes all values
+```{r}
+full_join(df1, df2, by = "id")
+```
+#### Window functions: `lead()`, `lag()`, `cumsum()`, etc.
+```{r}
+mtcars %>% mutate(lag_mpg = lag(mpg), cumsum_mpg = cumsum(mpg)) %>%
+select(mpg, lag_mpg, cumsum_mpg) %>% head(10)
+```
