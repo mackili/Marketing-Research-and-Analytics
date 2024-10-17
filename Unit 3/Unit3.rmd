@@ -8,6 +8,8 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Slides [here](./unit_3_tidyverse.pdf)
+
 # CRISP-DM data science workflow
 
 > Cross-industry standard process for data mining (CRISP-DM)
@@ -17,6 +19,9 @@ knitr::opts_chunk$set(echo = TRUE)
 2. Data understanding - What data do we have vs. need? What are our sources? How is data structured? Where is is stored?
 3. Data preparation
 4. Modeling - What modeling techniques should we use?
+    - What's the granularity of forecast?
+    - What are we predicting (*probability/sales volumes/etc* - format)
+    - What are we judging the model on? *Accuracy of the forecast*
 5. Evaluation - Which model best meets the business objectives?
 6. Deployment - How do stakeholders access the results?
 
