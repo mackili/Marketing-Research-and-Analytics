@@ -2,6 +2,8 @@ Unit 3 - Tidyverse
 ================
 Maciej Kilijański
 
+Slides [here](./unit_3_tidyverse.pdf)
+
 # CRISP-DM data science workflow
 
 > Cross-industry standard process for data mining (CRISP-DM)
