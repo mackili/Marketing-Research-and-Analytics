@@ -1,0 +1,39 @@
+---
+title: "Unit 3 - Tidyverse"
+author: "Maciej Kilijański"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# CRISP-DM data science workflow
+
+> Cross-industry standard process for data mining (CRISP-DM)
+
+## Sample workflow
+1. Business understanding - what is the business problem/need?
+2. Data understanding - What data do we have vs. need? What are our sources? How is data structured? Where is is stored?
+3. Data preparation
+4. Modeling - What modeling techniques should we use?
+5. Evaluation - Which model best meets the business objectives?
+6. Deployment - How do stakeholders access the results?
+
+## Including Code
+
+You can include R code in the document as follows:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
