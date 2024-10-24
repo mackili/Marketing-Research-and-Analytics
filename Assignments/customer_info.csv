@@ -1,0 +1,21 @@
+CustomerID,Name,Email,Age,Gender,Region
+C001,Alice Smith,alice@example.com,42,Male,West
+C002,Bob Johnson,bob@example.com,60,Male,West
+C003,Charlie Lee,charlie@example.com,44,Female,North
+C004,Diana King,diana@example.com,40,Male,South
+C005,Ethan Brown,ethan@example.com,24,Male,East
+C006,Fiona Davis,fiona@example.com,31,Female,South
+C007,George Clark,george@example.com,21,Female,South
+C008,Hannah Scott,hannah@example.com,37,Female,West
+C009,Ian Adams,ian@example.com,23,Male,South
+C010,Jane Baker,jane@example.com,42,Male,East
+C011,Kevin Carter,kevin@example.com,27,Female,North
+C012,Laura Evans,laura@example.com,20,Female,South
+C013,Mike Garcia,mike@example.com,30,Female,West
+C014,Nina Hill,nina@example.com,56,Male,West
+C015,Oscar Jones,oscar@example.com,30,Male,South
+C016,Paula Lewis,paula@example.com,34,Female,East
+C017,Quentin Martin,quentin@example.com,34,Female,East
+C018,Rachel Nelson,rachel@example.com,34,Male,West
+C019,Steve Parker,steve@example.com,34,Male,West
+C020,Tina Roberts,tina@example.com,60,Male,West

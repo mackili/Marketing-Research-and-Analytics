@@ -1,0 +1,541 @@
+---
+title: "Assignment 1"
+author: 
+  - Albert Kaczmarek, h52201551
+  - Maciej Kilijański, h12018188
+  - Balázs Kiss, h12314734
+output: 
+  github_document:
+    toc: TRUE
+  pdf_document:
+    toc: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Setup: 
+
+Loading necessary libraries.
+```{r,message=FALSE, warning=FALSE}
+library("tidyverse")
+library("ggplot2")
+library("readr")
+library("lubridate")
+library("dplyr")
+library("ggplot2")
+```
+
+## Part 1: Data Loading and Inspection
+
+### 1. Load the Data
+```{r,message=FALSE}
+customer_sales <- read_csv("customer_sales.csv")
+customer_info <- read_csv("customer_info.csv")
+product_info <- read_csv("product_info.csv")
+supplier_info <- read_csv("supplier_info.csv")
+```
+
+### 2. Inspect the Data
+
+```{r}
+glimpse(customer_sales)
+summary(customer_sales)
+
+glimpse(customer_info)
+summary(customer_info)
+
+glimpse(product_info)
+summary(product_info)
+
+glimpse(supplier_info)
+summary(supplier_info)
+```
+
+## Part 2: Data Cleaning and Tidying
+
+### 3. Handle Missing Values in customer_sales
+
+Identify rows with missing Quantity, UnitPrice, or TotalPrice:
+```{r}
+customer_sales |> 
+  filter(is.na(Quantity) | is.na(UnitPrice) | is.na(TotalPrice))
+```
+
+Identifying rows with available Quantity, UnitPrice, but no TotalPrice
+
+```{r}
+customer_sales |> 
+  filter(!is.na(Quantity) & !is.na(UnitPrice) & is.na(TotalPrice))
+```
+> There are 5 such values
+
+Correcting these values:, using `mutate()`. If `TotalPrice` is missing, it will be calculated by multiplicating $Quantity\cdot UnitPrice$.
+```{r}
+customer_sales <- customer_sales |> 
+  mutate(TotalPrice = ifelse(!is.na(Quantity) & !is.na(UnitPrice & is.na(TotalPrice)), 
+                             Quantity * UnitPrice, 
+                             TotalPrice))
+```
+Filtering rows where `Quantity` and `TotalPrice` are available, but `UnitPrice` is missing:
+```{r}
+customer_sales |> 
+  filter(!is.na(Quantity) & is.na(UnitPrice) & !is.na(TotalPrice))
+```
+> There are no such rows
+
+We do not need to fill in missing `UnitPrice`.
+
+Filtering rows where Unit Price and TotalPrice are available, Quantity is missing:
+```{r}
+customer_sales |> 
+  filter(is.na(Quantity) & !is.na(UnitPrice) & !is.na(TotalPrice))
+```
+> There are no such rows
+
+We do not need to fill in missing `Quantity`.
+
+> The rows with remaining NA values in 2 or 3 of the 3 columns are removed since their values cannot be inferred:
+```{r}
+customer_sales <- customer_sales |> 
+  filter(!(is.na(Quantity) | is.na(UnitPrice) | is.na(TotalPrice)))
+```
+
+Only 70 rows are kept from the original 80:
+
+* 10 rows have 2 out of 3 crucial values missing, making them impossible to inferr.
+
+
+### 4. Standardize Date Formats
+
+Substituting values which parse_date_time() doesn't recognize:
+```{r}
+customer_sales$Date <- gsub("Jän", "Jan", customer_sales$Date)
+```
+After the values have been cleaned, we can parse the date column:
+```{r}
+customer_sales$Date <- parse_date_time(
+  customer_sales$Date,
+  orders = c("ymd", "dmy", "mdy", "Ymd", "dmY", "mdY", "dMY"),
+  locale = "de_DE" # This helps parse German month abbreviations
+)
+```
+
+Let's see the result (`head(,3)` will display 3 top rows):
+```{r}
+head(customer_sales,3)
+```
+
+Correcting the dates which weren't interpreted for 2023 but should've been
+e.g. `30-03-23` was parsed as `2030-03-23` instead of `2023-03-30`.
+We perform this in several steps:
+
+> Splitting the data frame into 2 - 2023 and non-2023 (wrong) dates
+1. Filter observations where Date is for 2023 or not available
+```{r}
+df_2023 <- customer_sales |> 
+  filter(year(Date) == 2023 | is.na(Date)) |> print()
+```
+2. Filter observations where Date is NOT for 2023
+```{r}
+df_filtered <- customer_sales |> 
+  filter(year(Date) != 2023)  |> print()
+```
+3. Converting dates from YYYY-MM-DD to YY-MM-DD
+```{r}
+df_filtered <- df_filtered |> 
+  mutate(Date = format(Date, "%y-%m-%d")) |> print()
+```
+4. Converting all non-2023 values to 2023 (Switching YY with DD)
+```{r}
+df_filtered <- df_filtered |> 
+  mutate(Date = dmy(Date)) |> print()
+```
+5. Converting them back to standard format (YYYY-MM-DD)
+6. Combining the 2 data frames back together
+```{r}
+customer_sales <- bind_rows(df_2023, df_filtered) |> print()
+```
+7. Checking if all dates are for 2023
+```{r}
+customer_sales |>
+  filter(year(Date) != 2023)
+```
+
+As we can see, the returned tibble is empty, meaning all dates are correct.
+We can remove the 2 separate parts as we don't need them anymore
+```{r}
+rm(df_2023, df_filtered)
+```
+### 5. Correct data types
+
+Converting OrderID, Quantity, UnitPrice and TotalPrice columns from dbl to integer.
+```{r}
+customer_sales$OrderID <- as.integer(customer_sales$OrderID)
+customer_sales$Date <- as.Date(customer_sales$Date)
+customer_sales$Quantity <- as.integer(customer_sales$Quantity)
+customer_sales$UnitPrice <- as.integer(customer_sales$UnitPrice)
+customer_sales$TotalPrice <- as.integer(customer_sales$TotalPrice)
+```
+Let's see the result:
+```{r}
+head(customer_sales,3)
+```
+All formats are correct
+
+### 6. Resolve inconsistencies
+
+Correct any discrepancies found + Correcting negative values
+```{r}
+customer_sales$UnitPrice <- abs(customer_sales$UnitPrice)
+customer_sales$TotalPrice <- abs(customer_sales$TotalPrice)
+```
+Verify that TotalPrice equals $Quantity \cdot UnitPrice$ for all rows
+```{r}
+all(customer_sales$TotalPrice == customer_sales$Quantity * customer_sales$UnitPrice)
+```
+
+> All values correspond with each other
+
+
+## Part 3: Data Integration with joins
+
+### 7. Left join
+Perform a `left_join()` of `customer_sales` with `customer_info` on `CustomerID`
+```{R}
+customer_sales_enriched <- left_join(customer_sales, customer_info, by = "CustomerID")
+```
+
+Identify how many rows have missing customer information after the join
+```{r}
+customer_sales_enriched |> filter(is.na(Name))
+```
+> There are 3 observations with missing customer information
+
+### 8. Inner join
+
+Perform a `inner_join()` of `customer_sales_enriched` with `product_info` on `ProductID`
+```{r}
+customer_sales_enriched <- inner_join(
+  customer_sales_enriched, product_info, by = "ProductID"
+  )
+```
+
+Determine the number of rows in the resulting dataset
+```{r}
+glimpse(customer_sales_enriched)
+```
+
+> 67 rows instead of 70 in the previous dataset
+
+### 9. Right join
+
+Perform a `right_join()` of `product_info` with `customer_sales` on `ProductID`
+```{r}
+product_info_enriched <- right_join(product_info, customer_sales, by = "ProductID")
+```
+
+Identify products that have no sales records
+```{r}
+product_info_enriched |> 
+  filter(is.na(OrderID))
+```
+
+> There is no such product
+
+### 10. Full Join
+
+Perform a `full_join()` of `customer_info` with `customer_sales` on `CustomerID`
+```{r}
+customer_info_enriched <- full_join(customer_info, customer_sales, by = "CustomerID")
+```
+
+Identify customers who have not made any purchases
+```{r}
+customer_info_enriched |> 
+  filter(is.na(OrderID))
+```
+
+> 1 customer hasn't made any purchases: Oscar Jones
+
+
+## Part 4: Data Manipulation with dplyr
+
+### 11. Create a Profit and an AgeGroup column
+
+```{r}
+customer_sales_enriched <- customer_sales_enriched |> 
+  mutate(Profit = TotalPrice * 0.25,
+         AgeGroup = case_when(
+           Age < 30 ~ "Under 30",
+           Age >= 30 & Age <= 40 ~ "30-40",
+           Age > 40 ~ "Over 40"
+         ))
+```
+
+### 12. Filter and select data
+
+Assuming we want to get info about the customer region, not the sales region, we will use `Region.y`
+```{r}
+customer_sales_enriched |> 
+  filter(Category == "Electronics") |> 
+  select(OrderID,
+         Date,
+         CustomerID,
+         Name,
+         Product,
+         Quantity,
+         UnitPrice,
+         TotalPrice,
+         Profit,
+         Region.y,
+         AgeGroup)
+```
+
+### 13. Arrange Data
+
+Arranging descending by `TotalPrice`:
+```{r} 
+customer_sales_enriched |>
+  arrange(desc(TotalPrice))
+```
+## Part 5: Data Aggregation
+
+### 14. Group and Summarize
+
+Grouping by `Region.x` (sales region) and `Category`. Then creating a summary of `TotalQuantity`, `TotalPrice` and `AverageProfit`.
+```{r}
+customer_sales_enriched |> 
+  group_by(Region.x, Category) |>
+  summarise(TotalQuantity = sum(Quantity),
+            TotalPrice = sum(TotalPrice),
+            AverageProfit = mean(Profit), .groups = 'keep') |>
+            arrange(Region.x, Category)
+```
+
+### 15. Compute cumulative metrics
+
+Computing `TotalPrice` per `Region.x`, arranged descending by `Region.x`
+```{R}
+customer_sales_enriched |> 
+  group_by(Region.x) |> 
+  summarise(TotalPrice = sum(TotalPrice)) |>
+  arrange(desc(Region.x))
+```
+## Part 6: Data Tidying with tidyr
+### 16. Reshape the data
+
+Creating a wide-format table showing TotalPrice for each Product across different Regions
+```{r}
+wide <- customer_sales_enriched |>
+  group_by(ProductID, Region.x) |>
+  summarise(TotalPrice = sum(TotalPrice)) |>
+  pivot_wider(names_from = Region.x, values_from = TotalPrice)
+wide
+```
+
+> New columns called afrer `Region.x` values. Less rows.
+
+Converting it back to long format
+```{r}
+long <- wide |> 
+  pivot_longer(
+    cols = c("East", "North", "South", "West"),
+    names_to = 'Region',
+    values_to = 'TotalPrice'
+  ) |> 
+  filter(!is.na(TotalPrice))
+long
+```
+> Less columns, back to 48 rows
+
+## Part 7: Data Visualization with ggplot2
+
+### 17. Create a bar chart
+
+Plotting total price for each category on bar chart
+```{r}
+customer_sales_enriched |> 
+  group_by(Category) |> 
+  summarise(TotalPrice = sum(TotalPrice)) |> 
+  ggplot(mapping = aes(x = Category)) + 
+    geom_bar(aes(weight = TotalPrice))
+```
+
+
+### 18. Creating a time series plot
+
+```{r}
+customer_sales_enriched |> 
+  ggplot(mapping = aes(x = Date, y = TotalPrice, color = Region.x)) +
+  geom_line() +
+  labs(x = "Date", y = "Total Price", color = "Region", title = "Total Price over Time by Region") +
+  theme_minimal()
+```
+
+### 19. Creating a scatterplot
+
+```{r}
+customer_sales_enriched |> 
+  ggplot(mapping = aes(x = UnitPrice, y = Quantity, size = Profit)) +
+  geom_point(alpha = 0.6, color = "lightblue") +  # Use alpha to make points semi-transparent for better visibility
+  facet_wrap(~ Category) +   # Facet by Category
+  labs(x = "Unit Price", y = "Quantity", size = "Profit", title = "Unit Price vs. Quantity by Category") +
+  theme_minimal()
+```
+
+## Part 8: Advanced visualization
+
+### 20. Faceting and Themes
+
+Using `facet_wrap()` to create separate plots for each Region.
+
+Applying a custom theme to enhance visual appeal.
+
+```{r}
+customer_sales_enriched |> 
+  ggplot(mapping = aes(x = Date, y = TotalPrice)) +
+  geom_line() +
+  facet_wrap(~ Region.x) +
+  theme_minimal()
+```
+
+### 21. Customize Scales and Guides
+
+Customizing color scales and legends, using the `color` parameter.
+
+Adding informative axis labels and a descriptive title using `labs()`.
+```{r}
+customer_sales_enriched |> 
+  ggplot(mapping = aes(x = Date, y = TotalPrice, color = Category)) +
+  geom_line() +
+  facet_wrap(~ Region.x) +
+  labs(x = "Date", y = "Total Price", color = "Category", title = "Total Price over Time by Category for each Region") +
+  theme_minimal()
+```
+
+## Part 9: Additional Analysis with Joins
+
+### 22. Identify unmatched records
+
+After joins, identify any `OrderID` s without matching `CustomerID` s or `ProductID` s.
+
+To do so, we use `filter()` with two conditions and `OR` statement between.
+
+```{r}
+customer_sales_enriched |> 
+  filter(is.na(CustomerID) | is.na(ProductID))
+```
+
+> There are 3 rows with missing `CustomerID`
+
+1. Possible reasons for missing `CustomerID`:
+    1. Failure to capture customer information upon sale
+    2. Customer purchasing online without registering a personal account
+    3. Data handling mistakes, wrong / missing data entry
+2. Potential implications:
+    1. Missing information on customers - less information to base decisions on
+    2. Not being able do identify loyal customers - missing opportunity to reward / incentivize
+    3. Losing the capability of personalizing and targeting promotions to the individual customer
+
+### 23. Compare Different Joins
+
+Join customer_sales and customer_info using:
+
+1. `left_join`
+
+```{r}
+left <- left_join(customer_sales, customer_info, by = 'CustomerID')
+```
+2. `inner_join`
+```{r}
+inner <- inner_join(customer_sales, customer_info, by = 'CustomerID')
+```
+3. `right_join`
+
+```{r}
+right <- right_join(customer_sales, customer_info, by = 'CustomerID')
+```
+4. `full_join`
+```{r}
+full <- full_join(customer_sales, customer_info, by = 'CustomerID')
+```
+
+Now, lets compare the number of rows received:
+```{r}
+nrow(left)
+nrow(inner)
+nrow(right)
+nrow(full)
+```
+
+Differences between joins. When is each join type appropriate:
+
+Join type | Method of working | When appropriate?
+--|-----|------
+Left | Takes the available values in the left data frame and looks for matching values in the right | Appropriate when we want to take the left's values as a basis and look up matching values for it
+Inner | Only takes values from the 2 data frames where there are matching pairs | Appropriate when we only want the intersection of the 2 data frames
+Right | The inverse of left: it takes the available values in the right data frame and looks for matching values in the left | Appropriate when we want to take the right's values as a basis and look up matching values for it in the left
+Full | Joins the 2 data frames regardless of matching pairs. The resulting data frame includes all of the 2 data frame's values | Appropriate when we want to combine the values from 2 tables without leaving out any of the values in the join
+
+
+## Part 10: Deliverables
+
+### Data clearning
+
+Our data clearing process started with importing necessary libraries to `R`. These included `dplyr`, `tidyverse`, `lubridate` and `readr`.
+
+Then, data was imported from csv files using the `read_csv` command.
+
+Upon inspecting data, we realized the size of it and necessary steps to perform.
+
+1. First, we handled the missing values in `customer_sales` csv file. We filtered the tibble using the `filter()` command, to only see rows with
+either `Quantity`, `UnitPrice` or `TotalPrice` missing. We then went on and inferred the missing values, if only just a single column was missing.
+There were 10 cases in which we had to remove a row, because we could not inferr values - two or more columns were missing data.
+2. We then progressed to standardizing date formats in the same file. During step 1, we've notised there are some cases when January is written as `Jän` (Austrian), not the German `Jan`.
+These were replaced by using the `gsub()` command.
+After these have beencleaned, we had to correct some dates, which were incorrectly parsed, due to using `YY-MM-DD` format. Some dates were from 2030! The `mutate()` command was very handy here.
+3. We then fixed data types from `dbl` into `integer` or `date` using `as.integer()` and `as.Date()` commands.
+4. Next, we integrated all csv files using joins. More about it in the joins part.
+5. We also reshaped the tibbles with `tidyr`, using the `pivot_wider()` and `pivot_longer()` commands. This allowed us to display the Total Price (`sum`) per product in each of the regions easily.
+
+### Analysis & Key findings
+
+To analyze the data, we aggregated them to calculate Total Quantity, Price and Average profit per Sales Region, per Category (page 12 and 13).
+From our analysis the biggest revenue driver is Furniture in North region with $19500$ dollars of total price, with the biggest average profit as well (443 dollars).
+
+In total, however, its the West region that brings the most revenue (page 13), with 30100 in total.
+
+We later visualized the data with `ggplot2`, creating a bar chart, showing the Electronics bringing less revenue than Furniture
+
+```{r, echo=FALSE}
+customer_sales_enriched |>
+group_by(Category) |>
+summarise(TotalPrice = sum(TotalPrice)) |>
+ggplot(mapping = aes(x = Category)) +
+geom_bar(aes(weight = TotalPrice))
+```
+
+Also, we've included a TimeSeries plot, to show the Total Price over Time by Region:
+
+```{r, echo=FALSE}
+customer_sales_enriched |>
+ggplot(mapping = aes(x = Date, y = TotalPrice, color = Region.x)) +
+geom_line() +
+labs(x = "Date", y = "Total Price", color = "Region", title = "Total Price over Time by Region") +
+theme_minimal()
+```
+
+And a scatterplot to compare Unit Price to Quantity by Category
+
+```{r, echo=FALSE}
+customer_sales_enriched |>
+ggplot(mapping = aes(x = UnitPrice, y = Quantity, size = Profit)) +
+geom_point(alpha = 0.6, color = "lightblue") + # Use alpha to make points semi-transparent for better
+facet_wrap(~ Category) + # Facet by Category
+labs(x = "Unit Price", y = "Quantity", size = "Profit", title = "Unit Price vs. Quantity by Category") +
+theme_minimal()
+```
+
+We've used some advanced visualization methods as well, to display multiple plots on the same screen, or customize color scales.

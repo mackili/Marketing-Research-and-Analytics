@@ -1,0 +1,7 @@
+SupplierID,SupplierName,ContactEmail,Region
+S001,TechCorp,contact@techcorp.com,North
+S002,FurniCo,contact@furnico.com,South
+S003,WoodWorks,contact@woodworks.com,West
+S004,GadgetHub,contact@gadgethub.com,East
+S005,HomeEssentials,contact@homeessentials.com,East
+S006,OfficePlus,contact@officeplus.com,North
