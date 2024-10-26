@@ -1,0 +1,135 @@
+---
+title: "Unit 4"
+author: Maciej Kilijański
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Comparing groups: statistical tests
+
+Loading and summarizing the data:
+```{r}
+seg.df <- read.csv("https://goo.gl/qw303p",stringsAsFactors = TRUE)
+summary(seg.df)
+```
+
+## Descriptive statistics
+
+> Descriptive statistics for a specific segment can be obtained by indexing
+
+Mean income for segment `moving up`
+```{r}
+mean(seg.df$income[seg.df$Segment == "Moving up"])
+```
+
+Mean income for segment `moving up` who do not subscribe
+```{r}
+mean(seg.df$income[seg.df$Segment == "Moving up" & 
+                   seg.df$subscribe=="subNo"])
+```
+
+More efficient for multiple groups:
+`by(data, INDICES,FUN)`
+by divides data into groups for each unique value in indices and applies FUN to each group
+
+```{r}
+by(seg.df$income, seg.df$Segment, mean)
+by(seg.df$income, list(seg.df$Segment, seg.df$subscribe), mean)
+```
+
+Better alternative with structured output (data frame), that can be used for further operations
+
+> note: needs a list for even a single factor
+
+```{r}
+aggregate(seg.df$income, list(seg.df$Segment), mean)
+```
+
+We will use this output to add another variable to our data set that contains the segment mean:
+
+```{r}
+seg.income.mean <- aggregate(seg.df$income, list(seg.df$Segment), mean)
+seg.df$segIncome <- seg.income.mean[seg.df$Segment, 2]
+head(seg.df)
+```
+
+```{r, message=FALSE, warning=FALSE}
+library(car)
+```
+```{r}
+some(seg.df)
+```
+
+How did this work?
+```{r}
+head(seg.df$Segment)
+head(seg.income.mean[seg.df$Segment, ])
+head(seg.income.mean[seg.df$Segment, 2])
+```
+Clear that variable
+```{r}
+seg.df$segIncome <- NULL
+```
+
+### Formula version
+
+R provides a standard way to describe relationships among
+variables through formula specification.
+
+
+A formula uses the tilde (~) operator to separate response variables on the left
+from explanatory variables on the right. We will use this in different applications
+```{r}
+aggregate(income ~ Segment, data=seg.df, mean)
+```
+
+### Descriptives for two-way groups
+
+
+Cross -tabulation is a common task in marketing, e.g., separating customers
+into groups according to two or more factors
+> two-way data aggregation
+
+```{r}
+aggregate(income ~ Segment + ownHome, data=seg.df, mean)
+aggregate(income ~ Segment + ownHome + subscribe, data=seg.df, mean)
+```
+> Resulting output can be assigned to a data frame object and indexed
+```{r}
+agg.data <- aggregate(income ~ Segment + ownHome, data=seg.df, mean)
+agg.data[2, ]
+agg.data[2, 3]
+```
+
+Count of factor level occurence by factor
+can be obtained by using the table expression
+`with()` evaluates the expression in a data environment
+same as `table(seg.df$Segment, seg.df$ownHome)`
+
+```{r}
+with(seg.df, table(Segment, ownHome))
+```
+Suppose we want a breakdown of the number of kids in each household (kids)
+by segment. Here kids will be treated as factor and not as a number
+```{r}
+with(seg.df, table(kids, Segment))
+```
+> To obtain the total number of kids in each segment:
+
+* Alternative 1:
+```{r}
+aggregate(kids ~ Segment, data=seg.df, sum)
+```
+* Alternative 2:
+```{r}
+seg.tab <- with(seg.df, table(kids, Segment))
+apply(seg.tab*0:7, 2, sum)
+```
+* Alternative 3:
+```{r}
+seg.tab <- with(seg.df, table(kids, Segment))
+colSums(seg.tab*0:7)
+```
